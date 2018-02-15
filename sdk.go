@@ -16,7 +16,7 @@ import (
 var (
 	// PaintMode is the default paint mode
 	PaintMode = int(pb.PaintMode_PAINT)
-	// OverMode paints with alpha channel (TODO)
+	// OverMode paints with alpha channel
 	OverMode = int(pb.PaintMode_OVER)
 )
 
@@ -39,6 +39,15 @@ func NewClient(conn *grpc.ClientConn) *Client {
 		stream: nil,
 	}
 }
+func colorToPbColor(c color.Color) *pb.Color {
+	r, g, b, a := c.RGBA()
+	return &pb.Color{
+		Red:   r >> 8,
+		Green: g >> 8,
+		Blue:  b >> 8,
+		Alpha: a >> 8,
+	}
+}
 
 // StartDrawing start a drawing using a context
 func (client *Client) StartDrawing(ctx context.Context) error {
@@ -52,16 +61,10 @@ func (client *Client) StartDrawing(ctx context.Context) error {
 
 // Fill fills the layer with the given color.
 func (client *Client) Fill(c color.Color, layer int, paintMode int) error {
-	r, g, b, a := c.RGBA()
 	return client.stream.Send(&pb.DrawRequest{
 		Type: &pb.DrawRequest_Fill{
 			Fill: &pb.Fill{
-				Color: &pb.Color{
-					Red:   r >> 8,
-					Green: g >> 8,
-					Blue:  b >> 8,
-					Alpha: a >> 8,
-				},
+				Color:     colorToPbColor(c),
 				Layer:     int32(layer),
 				PaintMode: pb.PaintMode(paintMode),
 			},
@@ -88,18 +91,12 @@ func (client *Client) Clear(layers ...int) error {
 func (client *Client) SetPixels(pixels []Pixel, layer int, paintMode int) error {
 	px := make([]*pb.Pixel, len(pixels))
 	for i, p := range pixels {
-		r, g, b, a := p.Color.RGBA()
 		px[i] = &pb.Pixel{
 			Point: &pb.Point{
 				X: int32(p.Point.X),
 				Y: int32(p.Point.Y),
 			},
-			Color: &pb.Color{
-				Red:   r >> 8,
-				Green: g >> 8,
-				Blue:  b >> 8,
-				Alpha: a >> 8,
-			},
+			Color: colorToPbColor(p.Color),
 		}
 	}
 	return client.stream.Send(&pb.DrawRequest{
@@ -115,7 +112,7 @@ func (client *Client) SetPixels(pixels []Pixel, layer int, paintMode int) error 
 
 // DrawRectangle draws a rectangle in a given color on a given layer.
 func (client *Client) DrawRectangle(rect image.Rectangle, c color.Color, layer int, paintMode int) error {
-	r, g, b, a := c.RGBA()
+	pbc := colorToPbColor(c)
 	return client.stream.Send(&pb.DrawRequest{
 		Type: &pb.DrawRequest_DrawRectangle{
 			DrawRectangle: &pb.DrawRectangle{
@@ -127,12 +124,23 @@ func (client *Client) DrawRectangle(rect image.Rectangle, c color.Color, layer i
 					X: int32(rect.Max.X),
 					Y: int32(rect.Max.Y),
 				},
-				Color: &pb.Color{
-					Red:   r >> 8,
-					Green: g >> 8,
-					Blue:  b >> 8,
-					Alpha: a >> 8,
-				},
+				Color:     pbc,
+				Layer:     int32(layer),
+				PaintMode: pb.PaintMode(paintMode),
+			},
+		},
+	})
+}
+
+// WriteText writes a text.
+func (client *Client) WriteText(text string, font string, x int, c color.Color, layer int, paintMode int) error {
+	return client.stream.Send(&pb.DrawRequest{
+		Type: &pb.DrawRequest_WriteText{
+			WriteText: &pb.WriteText{
+				Text:      text,
+				Font:      font,
+				X:         int32(x),
+				Color:     colorToPbColor(c),
 				Layer:     int32(layer),
 				PaintMode: pb.PaintMode(paintMode),
 			},

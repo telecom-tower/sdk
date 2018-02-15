@@ -51,7 +51,7 @@ func (client *Client) StartDrawing(ctx context.Context) error {
 }
 
 // Fill fills the layer with the given color.
-func (client *Client) Fill(c color.Color, layer int) error {
+func (client *Client) Fill(c color.Color, layer int, paintMode int) error {
 	r, g, b, a := c.RGBA()
 	return client.stream.Send(&pb.DrawRequest{
 		Type: &pb.DrawRequest_Fill{
@@ -62,7 +62,8 @@ func (client *Client) Fill(c color.Color, layer int) error {
 					Blue:  b >> 8,
 					Alpha: a >> 8,
 				},
-				Layer: int32(layer),
+				Layer:     int32(layer),
+				PaintMode: pb.PaintMode(paintMode),
 			},
 		},
 	})
@@ -84,7 +85,7 @@ func (client *Client) Clear(layers ...int) error {
 }
 
 // SetPixels sets all pixels in a given layer.
-func (client *Client) SetPixels(pixels []Pixel, layer int) error {
+func (client *Client) SetPixels(pixels []Pixel, layer int, paintMode int) error {
 	px := make([]*pb.Pixel, len(pixels))
 	for i, p := range pixels {
 		r, g, b, a := p.Color.RGBA()
@@ -104,8 +105,9 @@ func (client *Client) SetPixels(pixels []Pixel, layer int) error {
 	return client.stream.Send(&pb.DrawRequest{
 		Type: &pb.DrawRequest_SetPixels{
 			SetPixels: &pb.SetPixels{
-				Pixels: px,
-				Layer:  int32(layer),
+				Pixels:    px,
+				Layer:     int32(layer),
+				PaintMode: pb.PaintMode(paintMode),
 			},
 		},
 	})

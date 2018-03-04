@@ -20,6 +20,17 @@ var (
 	OverMode = int(pb.PaintMode_OVER)
 )
 
+var (
+	// RollingStop stops autoroll
+	RollingStop = int(pb.AutoRoll_STOP)
+	// RollingStart sets the layer in autoroll mode
+	RollingStart = int(pb.AutoRoll_START)
+	// RollingNext schedule a new message
+	RollingNext = int(pb.AutoRoll_NEXT)
+	// RollingContinue continues the autoroll mode
+	RollingContinue = int(pb.AutoRoll_CONTINUE)
+)
+
 // Client is the base type for sending drawing commands.
 type Client struct {
 	client pb.TowerDisplayClient
@@ -143,6 +154,47 @@ func (client *Client) WriteText(text string, font string, x int, c color.Color, 
 				Color:     colorToPbColor(c),
 				Layer:     int32(layer),
 				PaintMode: pb.PaintMode(paintMode),
+			},
+		},
+	})
+}
+
+// SetLayerOrigin sets the origin of a layer
+func (client *Client) SetLayerOrigin(layer int, origin image.Point) error {
+	return client.stream.Send(&pb.DrawRequest{
+		Type: &pb.DrawRequest_SetLayerOrigin{
+			SetLayerOrigin: &pb.SetLayerOrigin{
+				Layer: int32(layer),
+				Position: &pb.Point{
+					X: int32(origin.X),
+					Y: int32(origin.Y),
+				},
+			},
+		},
+	})
+}
+
+// SetLayerAlpha sets the alpha of a layer
+func (client *Client) SetLayerAlpha(layer int, alpha int) error {
+	return client.stream.Send(&pb.DrawRequest{
+		Type: &pb.DrawRequest_SetLayerAlpha{
+			SetLayerAlpha: &pb.SetLayerAlpha{
+				Layer: int32(layer),
+				Alpha: int32(alpha),
+			},
+		},
+	})
+}
+
+//AutoRoll sets the autoroll mode of the layer
+func (client *Client) AutoRoll(layer int, mode int, entry int, separator int) error {
+	return client.stream.Send(&pb.DrawRequest{
+		Type: &pb.DrawRequest_AutoRoll{
+			AutoRoll: &pb.AutoRoll{
+				Layer:     int32(layer),
+				Mode:      pb.AutoRoll_Mode(mode),
+				Entry:     int32(entry),
+				Separator: int32(separator),
 			},
 		},
 	})

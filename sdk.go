@@ -70,19 +70,6 @@ func (client *Client) StartDrawing(ctx context.Context) error {
 	return nil
 }
 
-// Fill fills the layer with the given color.
-func (client *Client) Fill(c color.Color, layer int, paintMode int) error {
-	return client.stream.Send(&pb.DrawRequest{
-		Type: &pb.DrawRequest_Fill{
-			Fill: &pb.Fill{
-				Color:     colorToPbColor(c),
-				Layer:     int32(layer),
-				PaintMode: pb.PaintMode(paintMode),
-			},
-		},
-	})
-}
-
 // Clear clears the given layers.
 func (client *Client) Clear(layers ...int) error {
 	l := make([]int32, len(layers))

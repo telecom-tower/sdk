@@ -70,6 +70,15 @@ func (client *Client) StartDrawing(ctx context.Context) error {
 	return nil
 }
 
+// Init resets all layers.
+func (client *Client) Init() error {
+	return client.stream.Send(&pb.DrawRequest{
+		Type: &pb.DrawRequest_Init{
+			Init: &pb.Init{},
+		},
+	})
+}
+
 // Clear clears the given layers.
 func (client *Client) Clear(layers ...int) error {
 	l := make([]int32, len(layers))
